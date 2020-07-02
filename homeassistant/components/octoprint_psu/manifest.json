@@ -3,7 +3,9 @@
   "name": "Octoprint PSU",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/octoprint_psu",
-  "requirements": [],
+  "requirements": [
+    "octorest==0.4"
+  ],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
