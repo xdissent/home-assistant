@@ -1,0 +1,14 @@
+{
+  "domain": "octoprint_psu",
+  "name": "Octoprint PSU",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/octoprint_psu",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@xdissent"
+  ]
+}

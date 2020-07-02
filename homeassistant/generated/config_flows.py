@@ -112,6 +112,7 @@ FLOWS = [
     "nuheat",
     "nut",
     "nws",
+    "octoprint_psu",
     "onvif",
     "opentherm_gw",
     "openuv",
