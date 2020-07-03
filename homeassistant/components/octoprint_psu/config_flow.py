@@ -11,13 +11,11 @@ from octorest import (
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_URL, CONF_USERNAME
+from homeassistant.const import CONF_API_KEY, CONF_NAME, CONF_URL, CONF_USERNAME
 
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-DATA_SCHEMA = vol.Schema({CONF_URL: str, CONF_USERNAME: str})
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -96,8 +94,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
+        data_schema = vol.Schema({CONF_URL: str, CONF_USERNAME: str})
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA)
+            return self.async_show_form(step_id="user", data_schema=data_schema)
 
         errors = {}
         try:
@@ -113,7 +112,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "unknown"
 
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+            step_id="user", data_schema=data_schema, errors=errors
         )
 
     async def async_step_app_keys_workflow(self, user_input=None):
@@ -136,5 +135,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_finish(self, user_input=None):
         """Handle the final step."""
-        _LOGGER.debug("FINISH STEP: %s %s", self._api_key, self._name)
-        return self.async_show_form(step_id="finish", data_schema=DATA_SCHEMA)
+        data_schema = vol.Schema({vol.Optional(CONF_NAME, default=self._name): str})
+        if user_input is None:
+            return self.async_show_form(step_id="finish", data_schema=data_schema)
+        self._name = user_input[CONF_NAME]
+        data = {
+            CONF_NAME: self._name,
+            CONF_URL: self._url,
+            CONF_USERNAME: self._username,
+            CONF_API_KEY: self._api_key,
+        }
+        _LOGGER.debug("Creating entry: %s %s", self._name, data)
+        return self.async_create_entry(title=self._name, data=data)
