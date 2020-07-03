@@ -946,6 +946,9 @@ wakeonlan==1.1.6
 # homeassistant.components.folder_watcher
 watchdog==0.8.3
 
+# homeassistant.components.octoprint_psu
+websocket-client==0.57.0
+
 # homeassistant.components.wiffi
 wiffi==1.0.0
 
