@@ -1,4 +1,4 @@
-"""The Octoprint PSU integration."""
+"""The OctoPrint PSU integration."""
 import asyncio
 
 import voluptuous as vol
@@ -16,12 +16,12 @@ PLATFORMS = ["switch"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the Octoprint PSU component."""
+    """Set up the OctoPrint PSU component."""
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Octoprint PSU from a config entry."""
+    """Set up OctoPrint PSU from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
     client = RestClient(url=entry.data[CONF_URL])

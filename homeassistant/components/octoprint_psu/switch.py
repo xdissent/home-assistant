@@ -1,4 +1,4 @@
-"""Switch platform for Octoprint PSU integration."""
+"""Switch platform for OctoPrint PSU integration."""
 import logging
 
 from homeassistant.components.switch import SwitchEntity
@@ -17,12 +17,12 @@ async def async_setup_entry(
     """Set up switch based on a config entry."""
     client = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        [OctoprintPsuSwitchEntity(entry.entry_id, entry.data[CONF_NAME], client)]
+        [OctoPrintPsuSwitchEntity(entry.entry_id, entry.data[CONF_NAME], client)]
     )
 
 
-class OctoprintPsuSwitchEntity(SwitchEntity):
-    """An class for Octoprint PSU switches."""
+class OctoPrintPsuSwitchEntity(SwitchEntity):
+    """An class for OctoPrint PSU switches."""
 
     def __init__(self, unique_id, name, client):
         """Initialize the switch."""

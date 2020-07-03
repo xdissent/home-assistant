@@ -1,6 +1,6 @@
 {
   "domain": "octoprint_psu",
-  "name": "Octoprint PSU",
+  "name": "OctoPrint PSU",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/octoprint_psu",
   "requirements": [

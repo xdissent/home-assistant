@@ -1,3 +1,3 @@
-"""Constants for the Octoprint PSU integration."""
+"""Constants for the OctoPrint PSU integration."""
 
 DOMAIN = "octoprint_psu"

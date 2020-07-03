@@ -1,4 +1,4 @@
-"""Config flow for Octoprint PSU integration."""
+"""Config flow for OctoPrint PSU integration."""
 import asyncio
 import logging
 from typing import Optional
@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Octoprint PSU."""
+    """Handle a config flow for OctoPrint PSU."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
