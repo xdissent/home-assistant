@@ -33,7 +33,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_init_workflow(self):
         """Init the app keys workflow."""
-        self._client = RestClient(url=self._url)
+        self._client = RestClient(self.hass, self._url)
         supported = await self.hass.async_add_executor_job(
             self._client.probe_app_keys_workflow_support
         )
@@ -82,7 +82,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_set_api_key(self, api_key):
         self._api_key = api_key
-        await self.hass.async_add_executor_job(self._client.load_api_key, api_key)
+        await self._client.async_load_api_key(api_key)
 
     async def _async_get_name(self):
         settings = await self.hass.async_add_executor_job(self._client.settings)

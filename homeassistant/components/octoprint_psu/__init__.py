@@ -24,8 +24,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up OctoPrint PSU from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    client = RestClient(url=entry.data[CONF_URL])
-    await hass.async_add_executor_job(client.load_api_key, entry.data[CONF_API_KEY])
+    client = RestClient(hass, entry.data[CONF_URL])
+    await client.async_load_api_key(entry.data[CONF_API_KEY])
     hass.data[DOMAIN][entry.entry_id] = client
 
     for component in PLATFORMS:
