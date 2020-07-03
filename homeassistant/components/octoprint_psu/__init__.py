@@ -1,13 +1,13 @@
 """The Octoprint PSU integration."""
 import asyncio
 
-from octorest import OctoRest
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_URL
 from homeassistant.core import HomeAssistant
 
+from .api import RestClient
 from .const import DOMAIN
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
@@ -24,7 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Octoprint PSU from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    client = OctoRest(url=entry.data[CONF_URL])
+    client = RestClient(url=entry.data[CONF_URL])
     await hass.async_add_executor_job(client.load_api_key, entry.data[CONF_API_KEY])
     hass.data[DOMAIN][entry.entry_id] = client
 

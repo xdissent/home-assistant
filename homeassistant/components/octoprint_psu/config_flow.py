@@ -3,16 +3,13 @@ import asyncio
 import logging
 from typing import Optional
 
-from octorest import (
-    AuthorizationRequestPollingResult,
-    OctoRest,
-    WorkflowAppKeyRequestResult,
-)
+from octorest import AuthorizationRequestPollingResult, WorkflowAppKeyRequestResult
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_NAME, CONF_URL, CONF_USERNAME
 
+from .api import RestClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,7 +25,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize flow."""
         self._url: Optional[str] = None
         self._username: Optional[str] = None
-        self._client: Optional[OctoRest] = None
+        self._client: Optional[RestClient] = None
         self._workflow_url: Optional[str] = None
         self._workflow_result: Optional[WorkflowAppKeyRequestResult] = None
         self._api_key: Optional[str] = None
@@ -36,7 +33,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_init_workflow(self):
         """Init the app keys workflow."""
-        self._client = OctoRest(url=self._url)
+        self._client = RestClient(url=self._url)
         supported = await self.hass.async_add_executor_job(
             self._client.probe_app_keys_workflow_support
         )
