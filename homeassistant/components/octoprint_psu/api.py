@@ -78,3 +78,20 @@ class RestClient(OctoRest):
             elapsed += interval
 
         return (WorkflowAppKeyRequestResult.TIMED_OUT, None)
+
+    async def _async_post(self, path, data=None, files=None, json=None, ret=True):
+        return await self.hass.async_add_executor_job(
+            self._post, path, data, files, json, ret
+        )
+
+    async def async_turn_psu_on(self) -> None:
+        """Turn on the PSU."""
+        return await self._async_post(
+            "/api/plugin/psucontrol", json={"command": "turnPSUOn"}, ret=False
+        )
+
+    async def async_turn_psu_off(self) -> None:
+        """Turn off the PSU."""
+        return await self._async_post(
+            "/api/plugin/psucontrol", json={"command": "turnPSUOff"}, ret=False
+        )

@@ -30,6 +30,7 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
         self._name = name
         self._state = True
         self._client = client
+        self._available = True
 
     @property
     def unique_id(self):
@@ -46,12 +47,29 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
         """Return True if entity is on."""
         return self._state
 
-    def turn_on(self, **kwargs):
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._available
+
+    async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
-        self._state = True
+        try:
+            await self._client.async_turn_psu_on()
+            self._available = True
+            self._state = True
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            self._available = False
         self.schedule_update_ha_state()
 
-    def turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs):
         """Turn the switch off."""
-        self._state = False
+        try:
+            await self._client.async_turn_psu_off()
+            self._available = True
+            self._state = False
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            self._available = False
         self.schedule_update_ha_state()
