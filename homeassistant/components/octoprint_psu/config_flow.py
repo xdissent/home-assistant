@@ -1,9 +1,8 @@
 """Config flow for OctoPrint PSU integration."""
-import asyncio
 import logging
 from typing import Optional
 
-from octorest import AuthorizationRequestPollingResult, WorkflowAppKeyRequestResult
+from octorest import WorkflowAppKeyRequestResult
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -37,39 +36,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         supported = await self._client.async_probe_app_keys_workflow_support()
         if not supported:
             return False
-        workflow_url = await self._client.async_start_authorization_process(
-            f"Home Assistant ({self.flow_id})", self._username
-        )
-        self.hass.async_create_task(self._async_poll_workflow(workflow_url))
+        self.hass.async_create_task(self._async_poll_workflow())
         return True
 
-    async def _async_poll_workflow(self, url, timeout=60):
+    async def _async_poll_workflow(self):
         """Poll the app keys workflow."""
-        interval = 1
-        elapsed = 0
-
-        while elapsed < timeout:
-            _LOGGER.debug("Checking workflow url: %s", url)
-            # TODO: Try/catch
-            (
-                polling_result,
-                api_key,
-            ) = await self._client.async_poll_auth_request_decision(url)
-            if polling_result == AuthorizationRequestPollingResult.NOPE:
-                return await self._async_finish_workflow(
-                    WorkflowAppKeyRequestResult.NOPE
-                )
-            if polling_result == AuthorizationRequestPollingResult.GRANTED:
-                return await self._async_finish_workflow(
-                    WorkflowAppKeyRequestResult.GRANTED, api_key,
-                )
-            _LOGGER.debug("No workflow status yet: %s", url)
-            await asyncio.sleep(interval)
-            elapsed += interval
-        await self._async_finish_workflow(WorkflowAppKeyRequestResult.TIMED_OUT)
-
-    async def _async_finish_workflow(self, result, api_key=None):
-        _LOGGER.debug("Finishing workflow: %s %s", result, api_key)
+        (result, api_key) = await self._client.async_try_get_api_key(
+            f"Home Assistant ({self.flow_id})", self._username
+        )
         if result == WorkflowAppKeyRequestResult.GRANTED:
             await self._async_set_api_key(api_key)
             await self._async_get_name()
@@ -83,7 +57,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _async_get_name(self):
         settings = await self._client.async_settings()
-        _LOGGER.debug("Got settings: %s", settings)
         self._name = settings["appearance"]["name"]
 
     async def async_step_user(self, user_input=None):
@@ -100,7 +73,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Workflow supported: %s", workflow)
             if workflow:
                 return await self.async_step_app_keys_workflow()
-            errors["base"] = "invalid_auth"
+            else:
+                return await self.async_step_manual()
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
@@ -119,6 +93,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_app_keys_workflow_result(self, user_input=None):
         """Handle the workflow result step."""
         _LOGGER.debug("Workflow result step: %s %s", self._api_key, self._name)
+        if self._workflow_result == WorkflowAppKeyRequestResult.WORKFLOW_UNSUPPORTED:
+            return await self.async_step_manual()
         if self._workflow_result == WorkflowAppKeyRequestResult.GRANTED:
             return await self.async_step_finish()
         if self._workflow_result == WorkflowAppKeyRequestResult.NOPE:
@@ -126,6 +102,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._workflow_result == WorkflowAppKeyRequestResult.TIMED_OUT:
             return self.async_abort(reason="timed_out")
         return self.async_abort(reason="unknown")
+
+    async def async_step_manual(self, user_input=None):
+        """Handle manual step."""
+        data_schema = vol.Schema({CONF_API_KEY: str})
+        if not user_input:
+            return self.async_show_form(step_id="manual", data_schema=data_schema)
+
+        errors = {}
+        try:
+            await self._async_set_api_key(user_input[CONF_API_KEY])
+            await self._async_get_name()
+            return await self.async_step_finish()
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="manual", data_schema=data_schema, errors=errors
+        )
 
     async def async_step_finish(self, user_input=None):
         """Handle the final step."""

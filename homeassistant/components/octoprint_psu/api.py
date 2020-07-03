@@ -1,7 +1,12 @@
 """OctoPrint API Client."""
+import asyncio
 from typing import Optional, Tuple
 
-from octorest import AuthorizationRequestPollingResult, OctoRest
+from octorest import (
+    AuthorizationRequestPollingResult,
+    OctoRest,
+    WorkflowAppKeyRequestResult,
+)
 
 from homeassistant.helpers.typing import HomeAssistantType
 
@@ -43,3 +48,33 @@ class RestClient(OctoRest):
     async def async_settings(self, settings=None):
         """Retrieve current settings."""
         return await self.hass.async_add_executor_job(self.settings, settings)
+
+    async def async_try_get_api_key(
+        self, app_name: str, user: Optional[str], timeout: int = 60
+    ) -> Tuple[WorkflowAppKeyRequestResult, Optional[str]]:
+        """Run the Application Keys Plugin Workflow."""
+        workflow_supported = await self.async_probe_app_keys_workflow_support()
+
+        if not workflow_supported:
+            return (WorkflowAppKeyRequestResult.WORKFLOW_UNSUPPORTED, None)
+
+        polling_url = await self.async_start_authorization_process(app_name, user)
+
+        interval = 1
+        elapsed = 0
+
+        while elapsed < timeout:
+            (polling_result, api_key) = await self.async_poll_auth_request_decision(
+                polling_url
+            )
+
+            if polling_result == AuthorizationRequestPollingResult.NOPE:
+                return (WorkflowAppKeyRequestResult.NOPE, None)
+
+            if polling_result == AuthorizationRequestPollingResult.GRANTED:
+                return (WorkflowAppKeyRequestResult.GRANTED, api_key)
+
+            await asyncio.sleep(interval)
+            elapsed += interval
+
+        return (WorkflowAppKeyRequestResult.TIMED_OUT, None)
