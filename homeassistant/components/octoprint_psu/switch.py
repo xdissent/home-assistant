@@ -16,19 +16,20 @@ async def async_setup_entry(
 ) -> None:
     """Set up switch based on a config entry."""
     client = hass.data[DOMAIN][entry.entry_id]
+    state = await client.async_get_psu_state()
     async_add_entities(
-        [OctoPrintPsuSwitchEntity(entry.entry_id, entry.data[CONF_NAME], client)]
+        [OctoPrintPsuSwitchEntity(entry.entry_id, entry.data[CONF_NAME], client, state)]
     )
 
 
 class OctoPrintPsuSwitchEntity(SwitchEntity):
     """An class for OctoPrint PSU switches."""
 
-    def __init__(self, unique_id, name, client):
+    def __init__(self, unique_id, name, client, state):
         """Initialize the switch."""
         self._unique_id = unique_id
         self._name = name
-        self._state = True
+        self._state = state
         self._client = client
         self._available = True
 
@@ -51,6 +52,11 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return self._available
+
+    @property
+    def should_poll(self) -> bool:
+        """Return True if entity has to be polled for state."""
+        return False
 
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""

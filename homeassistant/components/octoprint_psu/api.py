@@ -95,3 +95,10 @@ class RestClient(OctoRest):
         return await self._async_post(
             "/api/plugin/psucontrol", json={"command": "turnPSUOff"}, ret=False
         )
+
+    async def async_get_psu_state(self) -> None:
+        """Turn off the PSU."""
+        res = await self._async_post(
+            "/api/plugin/psucontrol", json={"command": "getPSUState"}
+        )
+        return res["isPSUOn"]
