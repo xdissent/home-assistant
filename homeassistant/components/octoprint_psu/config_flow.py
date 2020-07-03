@@ -34,15 +34,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_init_workflow(self):
         """Init the app keys workflow."""
         self._client = RestClient(self.hass, self._url)
-        supported = await self.hass.async_add_executor_job(
-            self._client.probe_app_keys_workflow_support
-        )
+        supported = await self._client.async_probe_app_keys_workflow_support()
         if not supported:
             return False
-        workflow_url = await self.hass.async_add_executor_job(
-            self._client.start_authorization_process,
-            f"Home Assistant ({self.flow_id})",
-            self._username,
+        workflow_url = await self._client.async_start_authorization_process(
+            f"Home Assistant ({self.flow_id})", self._username
         )
         self.hass.async_create_task(self._async_poll_workflow(workflow_url))
         return True
@@ -55,9 +51,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         while elapsed < timeout:
             _LOGGER.debug("Checking workflow url: %s", url)
             # TODO: Try/catch
-            (polling_result, api_key) = await self.hass.async_add_executor_job(
-                self._client.poll_auth_request_decision, url
-            )
+            (
+                polling_result,
+                api_key,
+            ) = await self._client.async_poll_auth_request_decision(url)
             if polling_result == AuthorizationRequestPollingResult.NOPE:
                 return await self._async_finish_workflow(
                     WorkflowAppKeyRequestResult.NOPE
@@ -85,7 +82,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self._client.async_load_api_key(api_key)
 
     async def _async_get_name(self):
-        settings = await self.hass.async_add_executor_job(self._client.settings)
+        settings = await self._client.async_settings()
         _LOGGER.debug("Got settings: %s", settings)
         self._name = settings["appearance"]["name"]
 
