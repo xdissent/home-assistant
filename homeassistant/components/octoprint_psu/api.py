@@ -34,14 +34,16 @@ class OctoPrintAPIClient:
 
         self.rest = RestClient(hass, url)
 
+        self.connected = False
+
         def on_open(ws):
-            self._on_sockjs_open()
+            self._handle_sockjs_event({"type": "open"})
 
         def on_close(ws):
-            self._on_sockjs_close()
+            self._handle_sockjs_event({"type": "close"})
 
         def on_message(ws, message):
-            self._on_sockjs_message(message)
+            self._handle_sockjs_event({"type": "message", "message": message})
 
         self.sockjs = SockJSClient(
             url, on_open=on_open, on_close=on_close, on_message=on_message,
@@ -74,14 +76,16 @@ class OctoPrintAPIClient:
         self.sockjs.wait()
         _LOGGER.debug("Closed sockjs")
 
-    def _on_sockjs_open(self):
-        _LOGGER.debug("Sockjs open event received")
+    def _handle_sockjs_event(self, event):
+        _LOGGER.debug("Sockjs event received: %s", event)
+        if event["type"] == "open":
+            self.connected = True
+        if event["type"] == "close":
+            self.connected = False
+            # TODO: reconnect
 
-    def _on_sockjs_close(self):
-        _LOGGER.debug("Sockjs close event received")
-
-    def _on_sockjs_message(self, message):
-        _LOGGER.debug("Sockjs message received: %s", message)
+        # for listener in self.listeners:
+        #     self.hass.loop.call_soon_threadsafe(listener, event)
 
 
 class SockJSClient(WebSocketEventHandler):
