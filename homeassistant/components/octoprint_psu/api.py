@@ -58,9 +58,12 @@ class OctoPrintAPIClient:
     async def async_open(self):
         """Open the client."""
         _LOGGER.debug("Opening")
-        if self.api_key is not None:
+        if self.api_key:
             _LOGGER.debug("Loading REST API Key %s", self.api_key)
-            await self.rest.async_load_api_key(self.api_key)
+            try:
+                await self.rest.async_load_api_key(self.api_key)
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
         await self.hass.async_add_executor_job(self.sockjs.run)
         _LOGGER.debug("Opened")
 
