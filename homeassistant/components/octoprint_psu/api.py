@@ -201,6 +201,14 @@ class RestClient(OctoRest):
             self._post, path, data, files, json, ret
         )
 
+    async def async_revoke_key(self, api_key: str):
+        """Revoke an API Key."""
+        return await self._async_post(
+            "/api/plugin/appkeys",
+            json={"command": "revoke", "key": api_key},
+            ret=False,
+        )
+
     async def async_turn_psu_on(self) -> None:
         """Turn on the PSU."""
         return await self._async_post(

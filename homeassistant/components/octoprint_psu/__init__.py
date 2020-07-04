@@ -1,5 +1,6 @@
 """The OctoPrint PSU integration."""
 import asyncio
+import logging
 
 import voluptuous as vol
 
@@ -7,8 +8,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_URL, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .api import OctoPrintAPIClient
+from .api import OctoPrintAPIClient, RestClient
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
@@ -57,3 +60,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Remove a config entry."""
+    try:
+        _LOGGER.debug("Revoking API Key: %s", entry.data[CONF_API_KEY])
+        rest = RestClient(hass, entry.data[CONF_URL])
+        await rest.async_load_api_key(entry.data[CONF_API_KEY])
+        await rest.async_revoke_key(entry.data[CONF_API_KEY])
+    except Exception:  # pylint: disable=broad-except
+        _LOGGER.exception("Unexpected exception")
