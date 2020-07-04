@@ -1,10 +1,13 @@
 """Base Entity for OctoPrint PSU integration."""
+import logging
 from typing import Optional
 
 from homeassistant.core import callback
 from homeassistant.helpers.entity import Entity
 
 from .api import OctoPrintAPIClient
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class OctoPrintPsuEntity(Entity):
@@ -40,6 +43,7 @@ class OctoPrintPsuEntity(Entity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
+        _LOGGER.debug("Added to hass")
         self.async_on_remove(
             self._client.async_add_listener(self.async_handle_octoprint_event)
         )

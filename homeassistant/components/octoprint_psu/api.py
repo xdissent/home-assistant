@@ -99,11 +99,17 @@ class OctoPrintAPIClient:
         _LOGGER.debug("Sockjs event received: %s", event)
         if event["type"] == "open":
             self.connected = True
+            if self.api_key and self.username:
+                self.hass.add_job(self._auth_sockjs)
         if event["type"] == "close":
             self.connected = False
             # TODO: reconnect
         for listener in self._listeners:
             self.hass.add_job(listener, event)
+
+    def _auth_sockjs(self):
+        _LOGGER.debug("Authenticating sockjs: %s:%s", self.username, self.api_key)
+        self.sockjs.auth(self.username, self.api_key)
 
 
 class SockJSClient(WebSocketEventHandler):
