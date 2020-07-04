@@ -1,14 +1,36 @@
 """OctoPrint API Client."""
 import asyncio
+import json
 from typing import Optional, Tuple
 
 from octorest import (
     AuthorizationRequestPollingResult,
     OctoRest,
+    WebSocketEventHandler,
     WorkflowAppKeyRequestResult,
 )
 
 from homeassistant.helpers.typing import HomeAssistantType
+
+
+class SockJSClient(WebSocketEventHandler):
+    """OctoPrint SockJS API Client."""
+
+    def send(self, data):
+        """Send a message to the SockJS server."""
+        self.socket.send(json.dumps([json.dumps(data)]))
+
+    def close(self):
+        """Close the client."""
+        self.socket.close()
+
+    def auth(self, username: str, api_key: str):
+        """Authenticate the socket with a user and API key."""
+        self.send({"auth": f"{username}:{api_key}"})
+
+    def throttle(self, multiplier: int):
+        """Throttle status message frequency to multiplier * 500ms."""
+        self.send({"throttle": multiplier})
 
 
 class RestClient(OctoRest):
