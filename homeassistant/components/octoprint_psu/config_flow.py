@@ -1,4 +1,5 @@
 """Config flow for OctoPrint PSU integration."""
+from collections import OrderedDict
 import logging
 from typing import Optional
 
@@ -7,11 +8,16 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_NAME, CONF_URL, CONF_USERNAME
+from homeassistant.helpers.typing import DiscoveryInfoType
 
 from .api import RestClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_url(url: str) -> str:
+    return url if url.endswith("/") else f"{url}/"
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -60,13 +66,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
-        data_schema = vol.Schema({CONF_URL: str, CONF_USERNAME: str})
+        fields = OrderedDict()
+        fields[vol.Required(CONF_URL, default=self._url or vol.UNDEFINED)] = str
+        fields[
+            vol.Required(CONF_USERNAME, default=self._username or vol.UNDEFINED)
+        ] = str
+
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=data_schema)
+            return self.async_show_form(step_id="user", data_schema=vol.Schema(fields))
 
         errors = {}
         try:
-            self._url = user_input[CONF_URL]
+            self._url = _normalize_url(user_input[CONF_URL])
             self._username = user_input[CONF_USERNAME]
             workflow = await self._async_init_workflow()
             _LOGGER.debug("Workflow supported: %s", workflow)
@@ -79,7 +90,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "unknown"
 
         return self.async_show_form(
-            step_id="user", data_schema=data_schema, errors=errors
+            step_id="user", data_schema=vol.Schema(fields), errors=errors
         )
 
     async def async_step_app_keys_workflow(self, user_input=None):
@@ -104,7 +115,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_manual(self, user_input=None):
         """Handle manual step."""
-        data_schema = vol.Schema({CONF_API_KEY: str})
+        data_schema = vol.Schema({vol.Required(CONF_API_KEY): str})
         if not user_input:
             return self.async_show_form(step_id="manual", data_schema=data_schema)
 
@@ -123,7 +134,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_finish(self, user_input=None):
         """Handle the final step."""
-        data_schema = vol.Schema({vol.Optional(CONF_NAME, default=self._name): str})
+        data_schema = vol.Schema(
+            {vol.Required(CONF_NAME, default=self._name or vol.UNDEFINED): str}
+        )
         if user_input is None:
             return self.async_show_form(step_id="finish", data_schema=data_schema)
         self._name = user_input[CONF_NAME]
@@ -135,3 +148,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
         _LOGGER.debug("Creating entry: %s %s", self._name, data)
         return self.async_create_entry(title=self._name, data=data)
+
+    async def async_step_zeroconf(self, discovery_info: DiscoveryInfoType):
+        """Handle zeroconf step."""
+        _LOGGER.debug("Zeroconf discovery info: %s", discovery_info)
+
+        hostname = discovery_info["hostname"][:-1]
+        proto = "https" if discovery_info["port"] == 443 else "http"
+        port = discovery_info["port"]
+        host = (
+            hostname
+            if (proto == "https" and port == 443) or (proto == "http" and port == 80)
+            else f"{hostname}:{port}"
+        )
+        path = discovery_info["properties"].get("path", "/")
+        self._url = _normalize_url(f"{proto}://{host}{path}")
+
+        await self.async_set_unique_id(self._url)
+        self._abort_if_unique_id_configured()
+
+        _LOGGER.debug("Zeroconf form: %s", self._url)
+        return await self.async_step_user()
