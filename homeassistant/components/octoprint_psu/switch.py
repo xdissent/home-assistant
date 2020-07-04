@@ -7,6 +7,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
+from .entity import OctoPrintPsuEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,28 +19,30 @@ async def async_setup_entry(
     client = hass.data[DOMAIN][entry.entry_id]
     state = await client.rest.async_get_psu_state()
     async_add_entities(
-        [OctoPrintPsuSwitchEntity(entry.entry_id, entry.data[CONF_NAME], client, state)]
+        [
+            OctoPrintPsuSwitchEntity(
+                entry_id=entry.entry_id,
+                name=entry.data[CONF_NAME],
+                client=client,
+                state=state,
+            )
+        ]
     )
 
 
-class OctoPrintPsuSwitchEntity(SwitchEntity):
+class OctoPrintPsuSwitchEntity(OctoPrintPsuEntity, SwitchEntity):
     """An class for OctoPrint PSU switches."""
 
-    def __init__(self, unique_id, name, client, state):
+    def __init__(
+        self, state: bool = False, *args, **kwargs,
+    ):
         """Initialize the switch."""
-        self._unique_id = unique_id
-        self._name = name
+        super().__init__(*args, **kwargs)
         self._state = state
-        self._client = client
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self.async_on_remove(
-            self._client.async_add_listener(self._async_handle_sockjs_event)
-        )
 
     @callback
-    def _async_handle_sockjs_event(self, event):
+    def async_handle_octoprint_event(self, event):
+        """Handle OctoPrint SockJS API client event."""
         _LOGGER.debug("Sockjs event received: %s", event)
         if (
             event["type"] == "message"
@@ -49,26 +52,6 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
             self._state = event["message"]["plugin"]["data"]["isPSUOn"]
             _LOGGER.debug("Updated state: %s", self._state)
         self.async_write_ha_state()
-
-    @property
-    def unique_id(self):
-        """Return the unique id."""
-        return self._unique_id
-
-    @property
-    def name(self):
-        """Return the name of the switch if any."""
-        return self._name
-
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return self._client.connected
-
-    @property
-    def should_poll(self) -> bool:
-        """Return True if entity has to be polled for state."""
-        return False
 
     @property
     def is_on(self) -> bool:
