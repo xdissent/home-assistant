@@ -25,7 +25,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._url: Optional[str] = None
         self._username: Optional[str] = None
         self._client: Optional[RestClient] = None
-        self._workflow_url: Optional[str] = None
         self._workflow_result: Optional[WorkflowAppKeyRequestResult] = None
         self._api_key: Optional[str] = None
         self._name: Optional[str] = None

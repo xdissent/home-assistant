@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .api import API_EVENT
 from .const import DOMAIN
-from .entity import OctoPrintPsuEntity
+from .entity import OctoPrintEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ async def async_setup_entry(
     state = await client.rest.async_get_psu_state()
     async_add_entities(
         [
-            OctoPrintPsuSwitchEntity(
+            OctoPrintSwitchEntity(
                 entry_id=entry.entry_id,
                 name=entry.data[CONF_NAME],
                 client=client,
@@ -32,7 +32,7 @@ async def async_setup_entry(
     )
 
 
-class OctoPrintPsuSwitchEntity(OctoPrintPsuEntity, SwitchEntity):
+class OctoPrintSwitchEntity(OctoPrintEntity, SwitchEntity):
     """An class for OctoPrint PSU switches."""
 
     def __init__(

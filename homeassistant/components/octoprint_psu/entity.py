@@ -10,7 +10,7 @@ from .api import API_EVENT, OctoPrintAPIClient
 _LOGGER = logging.getLogger(__name__)
 
 
-class OctoPrintPsuEntity(Entity):
+class OctoPrintEntity(Entity):
     """An class for OctoPrint PSU entities."""
 
     def __init__(
