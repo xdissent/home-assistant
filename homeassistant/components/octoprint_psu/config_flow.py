@@ -169,3 +169,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         _LOGGER.debug("Zeroconf form: %s", self._url)
         return await self.async_step_user()
+
+    async def async_step_ssdp(self, discovery_info: DiscoveryInfoType):
+        """Handle ssdp step."""
+        _LOGGER.debug("SSDP discovery info: %s", discovery_info)
+
+        hostname = discovery_info["hostname"][:-1]
+        proto = "https" if discovery_info["port"] == 443 else "http"
+        port = discovery_info["port"]
+        host = (
+            hostname
+            if (proto == "https" and port == 443) or (proto == "http" and port == 80)
+            else f"{hostname}:{port}"
+        )
+        path = discovery_info["properties"].get("path", "/")
+        self._url = _normalize_url(f"{proto}://{host}{path}")
+
+        await self.async_set_unique_id(self._url)
+        self._abort_if_unique_id_configured()
+
+        _LOGGER.debug("SSDP form: %s", self._url)
+        return await self.async_step_user()

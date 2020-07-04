@@ -44,9 +44,6 @@ ZEROCONF = {
     "_nut._tcp.local.": [
         "nut"
     ],
-    "_octoprint._tcp.local.": [
-        "octoprint_psu"
-    ],
     "_printer._tcp.local.": [
         "brother"
     ],

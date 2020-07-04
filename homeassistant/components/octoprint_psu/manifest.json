@@ -4,8 +4,8 @@
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/octoprint_psu",
   "requirements": ["octorest==0.4", "websocket-client==0.57.0"],
-  "ssdp": [],
-  "zeroconf": ["_octoprint._tcp.local."],
+  "ssdp": [{ "manufacturer": "The OctoPrint Project" }],
+  "zeroconf": [],
   "homekit": {},
   "dependencies": [],
   "codeowners": ["@xdissent"]

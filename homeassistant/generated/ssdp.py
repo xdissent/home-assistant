@@ -108,6 +108,11 @@ SSDP = {
             "manufacturer": "konnected.io"
         }
     ],
+    "octoprint_psu": [
+        {
+            "manufacturer": "The OctoPrint Project"
+        }
+    ],
     "roku": [
         {
             "deviceType": "urn:roku-com:device:player:1-0",
