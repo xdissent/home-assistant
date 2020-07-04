@@ -174,16 +174,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle ssdp step."""
         _LOGGER.debug("SSDP discovery info: %s", discovery_info)
 
-        hostname = discovery_info["hostname"][:-1]
-        proto = "https" if discovery_info["port"] == 443 else "http"
-        port = discovery_info["port"]
-        host = (
-            hostname
-            if (proto == "https" and port == 443) or (proto == "http" and port == 80)
-            else f"{hostname}:{port}"
-        )
-        path = discovery_info["properties"].get("path", "/")
-        self._url = _normalize_url(f"{proto}://{host}{path}")
+        self._url = _normalize_url(discovery_info["presentationURL"])
 
         await self.async_set_unique_id(self._url)
         self._abort_if_unique_id_configured()
