@@ -4,10 +4,10 @@ import asyncio
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_URL
+from homeassistant.const import CONF_API_KEY, CONF_URL, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .api import RestClient
+from .api import OctoPrintAPIClient
 from .const import DOMAIN
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
@@ -24,8 +24,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up OctoPrint PSU from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    client = RestClient(hass, entry.data[CONF_URL])
-    await client.async_load_api_key(entry.data[CONF_API_KEY])
+    client = OctoPrintAPIClient(
+        hass,
+        entry.data[CONF_URL],
+        username=entry.data[CONF_USERNAME],
+        api_key=entry.data[CONF_API_KEY],
+    )
+    await client.async_open()
     hass.data[DOMAIN][entry.entry_id] = client
 
     for component in PLATFORMS:
@@ -47,6 +52,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
     )
     if unload_ok:
+        client = hass.data[DOMAIN][entry.entry_id]
+        await client.async_close()
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok

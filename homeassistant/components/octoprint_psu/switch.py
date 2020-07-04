@@ -16,7 +16,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up switch based on a config entry."""
     client = hass.data[DOMAIN][entry.entry_id]
-    state = await client.async_get_psu_state()
+    state = await client.rest.async_get_psu_state()
     async_add_entities(
         [OctoPrintPsuSwitchEntity(entry.entry_id, entry.data[CONF_NAME], client, state)]
     )
@@ -33,6 +33,12 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
         self._client = client
         self._available = True
 
+    # async def async_added_to_hass(self):
+    #     """When entity is added to hass."""
+    #     self.async_on_remove(
+    #         self._client.async_add_listener(self.async_write_ha_state)
+    #     )
+
     @property
     def unique_id(self):
         """Return the unique id."""
@@ -44,11 +50,6 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
         return self._name
 
     @property
-    def is_on(self) -> bool:
-        """Return True if entity is on."""
-        return self._state
-
-    @property
     def available(self) -> bool:
         """Return True if entity is available."""
         return self._available
@@ -58,24 +59,21 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
         """Return True if entity has to be polled for state."""
         return False
 
+    @property
+    def is_on(self) -> bool:
+        """Return True if entity is on."""
+        return self._state
+
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
         try:
-            await self._client.async_turn_psu_on()
-            self._available = True
-            self._state = True
+            await self._client.rest.async_turn_psu_on()
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
-            self._available = False
-        self.schedule_update_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """Turn the switch off."""
         try:
-            await self._client.async_turn_psu_off()
-            self._available = True
-            self._state = False
+            await self._client.rest.async_turn_psu_off()
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
-            self._available = False
-        self.schedule_update_ha_state()
