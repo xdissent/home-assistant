@@ -1,11 +1,13 @@
 """Switch platform for OctoPrint PSU integration."""
 import logging
+from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 
+from .api import API_EVENT
 from .const import DOMAIN
 from .entity import OctoPrintPsuEntity
 
@@ -34,14 +36,14 @@ class OctoPrintPsuSwitchEntity(OctoPrintPsuEntity, SwitchEntity):
     """An class for OctoPrint PSU switches."""
 
     def __init__(
-        self, state: bool = False, *args, **kwargs,
+        self, state: bool = False, *args: Any, **kwargs: Any,
     ):
         """Initialize the switch."""
         super().__init__(*args, **kwargs)
         self._state = state
 
     @callback
-    def async_handle_octoprint_event(self, event):
+    def async_handle_octoprint_event(self, event: API_EVENT) -> None:
         """Handle OctoPrint SockJS API client event."""
         _LOGGER.debug("Sockjs event received: %s", event)
         if (
@@ -58,14 +60,14 @@ class OctoPrintPsuSwitchEntity(OctoPrintPsuEntity, SwitchEntity):
         """Return True if entity is on."""
         return self._state
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
         try:
             await self._client.rest.async_turn_psu_on()
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
         try:
             await self._client.rest.async_turn_psu_off()

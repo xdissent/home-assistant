@@ -38,7 +38,7 @@ class OctoPrintAPIClient:
 
         self.rest = RestClient(hass, url)
 
-        self.connected = False
+        self.connected: bool = False
 
         self._listeners: List[API_EVENT_LISTENER] = []
 
