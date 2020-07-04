@@ -4,7 +4,7 @@ import logging
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
-from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 
@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    hass: HomeAssistantType, entry: ConfigEntry, async_add_entities
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ) -> None:
     """Set up switch based on a config entry."""
     client = hass.data[DOMAIN][entry.entry_id]
@@ -31,13 +31,24 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
         self._name = name
         self._state = state
         self._client = client
-        self._available = True
 
-    # async def async_added_to_hass(self):
-    #     """When entity is added to hass."""
-    #     self.async_on_remove(
-    #         self._client.async_add_listener(self.async_write_ha_state)
-    #     )
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        self.async_on_remove(
+            self._client.async_add_listener(self._async_handle_sockjs_event)
+        )
+
+    @callback
+    def _async_handle_sockjs_event(self, event):
+        _LOGGER.debug("Sockjs event received: %s", event)
+        if (
+            event["type"] == "message"
+            and "plugin" in event["message"]
+            and event["message"]["plugin"]["plugin"] == "psucontrol"
+        ):
+            self._state = event["message"]["plugin"]["data"]["isPSUOn"]
+            _LOGGER.debug("Updated state: %s", self._state)
+        self.async_write_ha_state()
 
     @property
     def unique_id(self):
@@ -52,7 +63,7 @@ class OctoPrintPsuSwitchEntity(SwitchEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self._available
+        return self._client.connected
 
     @property
     def should_poll(self) -> bool:

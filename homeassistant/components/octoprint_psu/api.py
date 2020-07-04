@@ -2,7 +2,7 @@
 import asyncio
 import json
 import logging
-from typing import Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from octorest import (
     AuthorizationRequestPollingResult,
@@ -11,7 +11,7 @@ from octorest import (
     WorkflowAppKeyRequestResult,
 )
 
-from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class OctoPrintAPIClient:
 
     def __init__(
         self,
-        hass: HomeAssistantType,
+        hass: HomeAssistant,
         url: str,
         username: Optional[str] = None,
         api_key: Optional[str] = None,
@@ -36,14 +36,16 @@ class OctoPrintAPIClient:
 
         self.connected = False
 
+        self._listeners: List[CALLBACK_TYPE] = []
+
         def on_open(ws):
-            self._handle_sockjs_event({"type": "open"})
+            self._on_sockjs_event({"type": "open"})
 
         def on_close(ws):
-            self._handle_sockjs_event({"type": "close"})
+            self._on_sockjs_event({"type": "close"})
 
         def on_message(ws, message):
-            self._handle_sockjs_event({"type": "message", "message": message})
+            self._on_sockjs_event({"type": "message", "message": message})
 
         self.sockjs = SockJSClient(
             url, on_open=on_open, on_close=on_close, on_message=on_message,
@@ -64,6 +66,23 @@ class OctoPrintAPIClient:
         await self.hass.async_add_executor_job(self._close_sockjs)
         _LOGGER.debug("Closed")
 
+    @callback
+    def async_add_listener(self, listener: CALLBACK_TYPE) -> Callable[[], None]:
+        """Listen for sockjs events."""
+        self._listeners.append(listener)
+
+        @callback
+        def remove_listener() -> None:
+            """Remove update listener."""
+            self.async_remove_listener(listener)
+
+        return remove_listener
+
+    @callback
+    def async_remove_listener(self, listener: CALLBACK_TYPE) -> None:
+        """Remove data update."""
+        self._listeners.remove(listener)
+
     def _open_sockjs(self):
         _LOGGER.debug("Opening sockjs")
         self.sockjs.run()
@@ -76,16 +95,15 @@ class OctoPrintAPIClient:
         self.sockjs.wait()
         _LOGGER.debug("Closed sockjs")
 
-    def _handle_sockjs_event(self, event):
+    def _on_sockjs_event(self, event):
         _LOGGER.debug("Sockjs event received: %s", event)
         if event["type"] == "open":
             self.connected = True
         if event["type"] == "close":
             self.connected = False
             # TODO: reconnect
-
-        # for listener in self.listeners:
-        #     self.hass.loop.call_soon_threadsafe(listener, event)
+        for listener in self._listeners:
+            self.hass.add_job(listener, event)
 
 
 class SockJSClient(WebSocketEventHandler):
@@ -111,9 +129,9 @@ class SockJSClient(WebSocketEventHandler):
 class RestClient(OctoRest):
     """OctoPrint REST API Client."""
 
-    def __init__(self, hass: HomeAssistantType, url: str):
+    def __init__(self, hass: HomeAssistant, url: str):
         """Initialize the client."""
-        self.hass: HomeAssistantType = hass
+        self.hass: HomeAssistant = hass
         super().__init__(url=url)
 
     async def async_load_api_key(self, api_key: str) -> None:
