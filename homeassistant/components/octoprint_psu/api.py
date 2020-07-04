@@ -2,7 +2,7 @@
 import asyncio
 import json
 import logging
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from octorest import (
     AuthorizationRequestPollingResult,
@@ -11,9 +11,13 @@ from octorest import (
     WorkflowAppKeyRequestResult,
 )
 
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.core import HomeAssistant, callback
 
 _LOGGER = logging.getLogger(__name__)
+
+
+API_EVENT = Dict[str, Any]
+API_EVENT_LISTENER = Callable[[API_EVENT], None]
 
 
 class OctoPrintAPIClient:
@@ -36,7 +40,7 @@ class OctoPrintAPIClient:
 
         self.connected = False
 
-        self._listeners: List[CALLBACK_TYPE] = []
+        self._listeners: List[API_EVENT_LISTENER] = []
 
         def on_open(ws):
             self._on_sockjs_event({"type": "open"})
@@ -57,17 +61,18 @@ class OctoPrintAPIClient:
         if self.api_key is not None:
             _LOGGER.debug("Loading REST API Key %s", self.api_key)
             await self.rest.async_load_api_key(self.api_key)
-        await self.hass.async_add_executor_job(self._open_sockjs)
+        await self.hass.async_add_executor_job(self.sockjs.run)
         _LOGGER.debug("Opened")
 
     async def async_close(self):
         """Close the client."""
         _LOGGER.debug("Closing")
-        await self.hass.async_add_executor_job(self._close_sockjs)
+        await self.hass.async_add_executor_job(self.sockjs.close)
+        await self.hass.async_add_executor_job(self.sockjs.wait)
         _LOGGER.debug("Closed")
 
     @callback
-    def async_add_listener(self, listener: CALLBACK_TYPE) -> Callable[[], None]:
+    def async_add_listener(self, listener: API_EVENT_LISTENER) -> Callable[[], None]:
         """Listen for sockjs events."""
         self._listeners.append(listener)
 
@@ -79,21 +84,9 @@ class OctoPrintAPIClient:
         return remove_listener
 
     @callback
-    def async_remove_listener(self, listener: CALLBACK_TYPE) -> None:
+    def async_remove_listener(self, listener: API_EVENT_LISTENER) -> None:
         """Remove data update."""
         self._listeners.remove(listener)
-
-    def _open_sockjs(self):
-        _LOGGER.debug("Opening sockjs")
-        self.sockjs.run()
-        _LOGGER.debug("Opened sockjs")
-
-    def _close_sockjs(self):
-        _LOGGER.debug("Closing sockjs")
-        self.sockjs.close()
-        _LOGGER.debug("Waiting sockjs")
-        self.sockjs.wait()
-        _LOGGER.debug("Closed sockjs")
 
     def _on_sockjs_event(self, event):
         _LOGGER.debug("Sockjs event received: %s", event)
