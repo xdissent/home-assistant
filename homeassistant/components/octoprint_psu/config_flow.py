@@ -181,3 +181,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         _LOGGER.debug("SSDP form: %s", self._url)
         return await self.async_step_user()
+
+    async def async_step_import(self, user_input=None):
+        """Handle import step."""
+        _LOGGER.debug("Import user input: %s", user_input)
+
+        return await self.async_step_user()
