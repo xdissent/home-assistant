@@ -121,6 +121,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up OctoPrint PSU from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    _LOGGER.debug("Setting up entry %s", entry)
 
     client = OctoPrintAPIClient(
         hass,
@@ -128,7 +129,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         username=entry.data[CONF_USERNAME],
         api_key=entry.data[CONF_API_KEY],
     )
+    _LOGGER.debug("Opening client %s", entry.data[CONF_URL])
     await client.async_open()
+    _LOGGER.debug("Opened client %s", entry.data[CONF_URL])
     hass.data[DOMAIN][entry.entry_id] = client
 
     for component in PLATFORMS:

@@ -49,6 +49,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         (result, api_key) = await self._client.async_try_get_api_key(
             f"Home Assistant ({self.flow_id})", self._username
         )
+        _LOGGER.debug("Polled workflow result: %s, %s", result, api_key)
         if result == WorkflowAppKeyRequestResult.GRANTED:
             await self._async_set_api_key(api_key)
             await self._async_get_name()
@@ -207,6 +208,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         path = user_input["path"]
         self._url = _normalize_url(f"{proto}://{host}{path}")
 
+        await self.async_set_unique_id(self._url)
+        self._abort_if_unique_id_configured()
+
         self._client = RestClient(self.hass, self._url)
 
         try:
@@ -221,4 +225,4 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("The api key %s has no user associated with it.")
             return self.async_abort(reason="username_error")
 
-        return await self._async_create_entry()
+        return self._async_create_entry()
