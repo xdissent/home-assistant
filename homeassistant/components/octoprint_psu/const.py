@@ -6,6 +6,7 @@ DOMAIN = "octoprint_psu"
 
 DEFAULT_NAME = "OctoPrint"
 
+CONF_REVOKE_API_KEY = "revoke_api_key"
 CONF_BED = "bed"
 CONF_NUMBER_OF_TOOLS = "number_of_tools"
 

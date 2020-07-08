@@ -196,10 +196,17 @@ class RestClient(OctoRest):
 
         return (WorkflowAppKeyRequestResult.TIMED_OUT, None)
 
+    async def _async_get(self, path, params=None):
+        return await self.hass.async_add_executor_job(self._get, path, params)
+
     async def _async_post(self, path, data=None, files=None, json=None, ret=True):
         return await self.hass.async_add_executor_job(
             self._post, path, data, files, json, ret
         )
+
+    async def async_current_user(self):
+        """Get current user information."""
+        return await self._async_get("/api/currentuser")
 
     async def async_revoke_key(self, api_key: str):
         """Revoke an API Key."""

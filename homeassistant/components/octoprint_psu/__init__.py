@@ -27,6 +27,7 @@ from .const import (
     BINARY_SENSOR_TYPES,
     CONF_BED,
     CONF_NUMBER_OF_TOOLS,
+    CONF_REVOKE_API_KEY,
     DEFAULT_NAME,
     DOMAIN,
     SENSOR_TYPES,
@@ -80,6 +81,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Schema(
                     {
                         vol.Required(CONF_API_KEY): cv.string,
+                        vol.Optional(CONF_USERNAME): cv.string,
                         vol.Required(CONF_HOST): cv.string,
                         vol.Optional(CONF_SSL, default=False): cv.boolean,
                         vol.Optional(CONF_PORT, default=80): cv.port,
@@ -116,7 +118,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up OctoPrint PSU from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
@@ -137,7 +139,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = all(
         await asyncio.gather(
@@ -155,8 +157,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     return unload_ok
 
 
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Remove a config entry."""
+    if not entry.data[CONF_REVOKE_API_KEY]:
+        return
     try:
         _LOGGER.debug("Revoking API Key: %s", entry.data[CONF_API_KEY])
         rest = RestClient(hass, entry.data[CONF_URL])

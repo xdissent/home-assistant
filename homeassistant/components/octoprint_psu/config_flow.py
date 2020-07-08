@@ -11,7 +11,7 @@ from homeassistant.const import CONF_API_KEY, CONF_NAME, CONF_URL, CONF_USERNAME
 from homeassistant.helpers.typing import DiscoveryInfoType
 
 from .api import RestClient
-from .const import DOMAIN
+from .const import CONF_REVOKE_API_KEY, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,12 +57,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_set_api_key(self, api_key):
+        _LOGGER.debug("Setting api key: %s", api_key)
         self._api_key = api_key
         await self._client.async_load_api_key(api_key)
 
     async def _async_get_name(self):
+        _LOGGER.debug("Getting name")
         settings = await self._client.async_settings()
         self._name = settings["appearance"]["name"]
+        _LOGGER.debug("Got name: %s", self._name)
+
+    def _async_create_entry(self):
+        data = {
+            CONF_NAME: self._name,
+            CONF_URL: self._url,
+            CONF_USERNAME: self._username,
+            CONF_API_KEY: self._api_key,
+            CONF_REVOKE_API_KEY: self._workflow_result
+            == WorkflowAppKeyRequestResult.GRANTED,
+        }
+        _LOGGER.debug("Creating entry: %s %s", self._name, data)
+        return self.async_create_entry(title=self._name, data=data)
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -140,14 +155,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="finish", data_schema=data_schema)
         self._name = user_input[CONF_NAME]
-        data = {
-            CONF_NAME: self._name,
-            CONF_URL: self._url,
-            CONF_USERNAME: self._username,
-            CONF_API_KEY: self._api_key,
-        }
-        _LOGGER.debug("Creating entry: %s %s", self._name, data)
-        return self.async_create_entry(title=self._name, data=data)
+        return self._async_create_entry()
 
     async def async_step_zeroconf(self, discovery_info: DiscoveryInfoType):
         """Handle zeroconf step."""
@@ -186,4 +194,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle import step."""
         _LOGGER.debug("Import user input: %s", user_input)
 
-        return await self.async_step_user()
+        self._name = user_input["name"]
+
+        hostname = user_input["host"]
+        proto = "https" if user_input["ssl"] else "http"
+        port = user_input["port"]
+        host = (
+            hostname
+            if (proto == "https" and port == 443) or (proto == "http" and port == 80)
+            else f"{hostname}:{port}"
+        )
+        path = user_input["path"]
+        self._url = _normalize_url(f"{proto}://{host}{path}")
+
+        self._client = RestClient(self.hass, self._url)
+
+        try:
+            await self._async_set_api_key(user_input["api_key"])
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            return self.async_abort(reason="connect_error")
+
+        api_user = await self._client.async_current_user()
+        self._username = api_user["name"]
+        if self._username == "_api":
+            _LOGGER.warning("The api key %s has no user associated with it.")
+            return self.async_abort(reason="username_error")
+
+        return await self._async_create_entry()
