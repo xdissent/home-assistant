@@ -1,22 +1,31 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
-        },
-        "error": {
-            "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-            "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-            "unknown": "[%key:common::config_flow::error::unknown%]"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "host": "[%key:common::config_flow::data::host%]",
-                    "password": "[%key:common::config_flow::data::password%]",
-                    "username": "[%key:common::config_flow::data::username%]"
-                }
-            }
+  "title": "OctoPrint PSU",
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "url": "URL",
+          "username": "[%key:common::config_flow::data::username%]"
         }
+      },
+      "manual": {
+        "data": {
+          "api_key": "[%key:common::config_flow::data::api_key%]"
+        }
+      },
+      "finish": {
+        "data": {
+          "name": "Name"
+        }
+      }
     },
-    "title": "OctoPrint PSU"
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  }
 }

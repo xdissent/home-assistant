@@ -4,9 +4,18 @@
     "step": {
       "user": {
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
-          "username": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "url": "URL",
+          "username": "[%key:common::config_flow::data::username%]"
+        }
+      },
+      "manual": {
+        "data": {
+          "api_key": "[%key:common::config_flow::data::api_key%]"
+        }
+      },
+      "finish": {
+        "data": {
+          "name": "Name"
         }
       }
     },
